@@ -51,7 +51,8 @@ class Helper
         if (!$this->getOrder()) {
             return null;
         }
-        return $this->getOrder()->getId() . '_' . $this->getOrder()->getIncrementId();
+        return $this->getOrder()->getId() . '_'
+        . $this->getOrder()->getIncrementId();
     }
 
     public function getDiscountCodes()
@@ -84,10 +85,10 @@ class Helper
         $resolver = $om->get('Magento\Framework\Locale\Resolver');
         $httpHeader = $om->get('Magento\Framework\HTTP\Header');
 
-        return new Model\ClientDetails(array_filter(array(
+        return new Model\ClientDetails(array_filter([
             'accept_language' => $resolver->getLocale(),
             'user_agent' => $httpHeader->getHttpUserAgent()
-        ), 'strlen'));
+        ], 'strlen'));
     }
 
     public function getCustomer()
@@ -103,8 +104,12 @@ class Helper
         );
         if ($customer_id) {
             $customer_details = $this->_customerFactory->load($customer_id);
-            $customer_props['created_at'] = $this->formatDateAsIso8601($customer_details->getCreatedAt());
-            $customer_props['updated_at'] = $this->formatDateAsIso8601($customer_details->getUpdatedAt());
+            $customer_props['created_at'] = $this->formatDateAsIso8601(
+                $customer_details->getCreatedAt()
+            );
+            $customer_props['updated_at'] = $this->formatDateAsIso8601(
+                $customer_details->getUpdatedAt()
+            );
             try {
                 $customer_orders = $this->_orderFactory->create()->addFieldToFilter('customer_id', $customer_id);
                 $customer_orders_count = $customer_orders->getSize();
@@ -158,13 +163,19 @@ class Helper
                 }
 
                 if (count($category_ids) == 0) {
-                    $store_root_category_id = $this->_storeManager->getStore()->getRootCategoryId();
-                    $root_category = $this->_categoryFactory->load($store_root_category_id);
+                    $store_root_category_id = $this->_storeManager
+                        ->getStore()
+                        ->getRootCategoryId();
+                    $root_category = $this->_categoryFactory
+                        ->load($store_root_category_id);
                     $categories[] = $root_category->getName();
                 }
 
                 if ($product->getManufacturer()) {
-                    $brand = $product->getResource()->getAttribute('manufacturer')->getFrontend()->getValue($product);
+                    $brand = $product->getResource()
+                        ->getAttribute('manufacturer')
+                        ->getFrontend()
+                        ->getValue($product);
                 }
             }
             $line_items[] = new Model\LineItem(array_filter(array(
