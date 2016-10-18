@@ -5,7 +5,6 @@ class Js extends \Magento\Framework\View\Element\Template
 {
     private $apiConfig;
     private $session;
-    protected $_isScopePrivate = false;
 
     public function __construct(
         \Magento\Framework\View\Element\Template\Context $context,
@@ -26,6 +25,8 @@ class Js extends \Magento\Framework\View\Element\Template
         $this->session = $session;
 
         parent::__construct($context, $data);
+
+        $this->_isScopePrivate = true;
     }
 
     public function getSessionId()
