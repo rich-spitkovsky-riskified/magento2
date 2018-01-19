@@ -52,7 +52,13 @@ class Order
 
     public function post($order, $action)
     {
+        $this->logger->log(
+            __("Called post method of Order Api object.")
+        );
         if (!$this->_apiConfig->isEnabled()) {
+            $this->logger->log(
+                __("The extension is disabled. Aborting.")
+            );
             return;
         }
 
@@ -66,6 +72,11 @@ class Order
             'order' => $order,
             'action' => $action
         );
+
+        $this->logger->log(
+            __("Order has been prepared. Calling api process")
+        );
+
         try {
             switch ($action) {
                 case Api::ACTION_CREATE:
