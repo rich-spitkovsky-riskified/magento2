@@ -97,7 +97,7 @@ class Declined implements ObserverInterface {
     private $declineSentFactory;
 
     /**
-     * @var \Magento\Sales\Model\Order
+     * @var \Magento\Sales\Model\Order\Interceptor
      */
     private $order;
 
