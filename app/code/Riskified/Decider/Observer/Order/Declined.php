@@ -16,6 +16,8 @@ use Riskified\Decider\Api\Config;
 use Riskified\Decider\Api\Order as OrderApi;
 use Riskified\Decider\Api\Order\Log;
 use Riskified\Decider\Logger\Order;
+use Riskified\Decider\Model\DeclineSentFactory;
+use Magento\Framework\Exception\LocalizedException;
 
 
 class Declined implements ObserverInterface {
@@ -90,6 +92,16 @@ class Declined implements ObserverInterface {
     private $escaper;
 
     /**
+     * @var \Riskified\Decider\Model\DeclineSentFactory
+     */
+    private $declineSentFactory;
+
+    /**
+     * @var \Magento\Sales\Model\Order
+     */
+    private $order;
+
+    /**
      * AutoInvoice constructor.
      *
      * @param Log                  $apiOrderLogger
@@ -110,6 +122,7 @@ class Declined implements ObserverInterface {
         StateInterface $inlineTranslation,
         ScopeConfigInterface $scopeConfig,
         StoreManagerInterface $storeManager,
+        DeclineSentFactory $declineSentFactory,
         Escaper $escaper
     ) {
         $this->logger = $logger;
@@ -122,6 +135,7 @@ class Declined implements ObserverInterface {
         $this->transportBuilder = $transportBuilder;
         $this->inlineTranslation = $inlineTranslation;
         $this->storeManager = $storeManager;
+        $this->declineSentFactory = $declineSentFactory;
         $this->escaper = $escaper;
     }
 
@@ -158,21 +172,29 @@ class Declined implements ObserverInterface {
         }
 
         try {
+            $this->order = $order;
+
+            $this->validate();
+
             if ($content == "") {
-                throw new \Exception("Email content is empty");
+                throw new LocalizedException(
+                    __("Email content is empty")
+                );
             }
 
             if ($subject == "") {
-                throw new \Exception("Email subject is empty");
+                throw new LocalizedException(
+                    __("Email subject is empty")
+                );
             }
 
             $this->inlineTranslation->suspend();
 
             $transport = $this->transportBuilder
-                ->setTemplateIdentifier('riskified_order_declined') // this code we have mentioned in the email_templates.xml
+                ->setTemplateIdentifier('riskified_order_declined')
                 ->setTemplateOptions(
                     [
-                        'area' => \Magento\Framework\App\Area::AREA_FRONTEND, // this is using frontend area to get the template file
+                        'area' => \Magento\Framework\App\Area::AREA_FRONTEND,
                         'store' => $order->getStoreId(),
                     ]
                 )
@@ -194,6 +216,10 @@ class Declined implements ObserverInterface {
             $transport->sendMessage();
             $this->inlineTranslation->resume();
 
+            $declineSentModel = $this->declineSentFactory->create();
+            $declineSentModel->setOrderId($order->getId());
+            $declineSentModel->save();
+
             $fileLog = sprintf(
                 __("Declination email was sent to customer %s (%s) for order #%s"),
                 $order->getCustomerName(),
@@ -212,9 +238,12 @@ class Declined implements ObserverInterface {
             $order
                 ->addStatusHistoryComment($orderComment)
                 ->setIsCustomerNotified(true);
+
             $order->save();
-        } catch (\Exception $e) {
+        } catch (LocalizedException $e) {
             $this->logger->critical($e->getMessage());
+        } catch (\Exception $e) {
+            return $this;
         }
     }
 
@@ -246,5 +275,33 @@ class Declined implements ObserverInterface {
         ];
 
         return $data;
+    }
+
+    /**
+     * Method validates if new notification about declination can be sent to customer.
+     *
+     * Currently, it's validating if notification is saved in "riskified_decider_declination_sent" table.
+     * If yes, then it's preventing to sent the notification again.
+     *
+     * New validators can be added here.
+     *
+     * @return $this
+     * @throws \Exception
+     */
+    private function validate()
+    {
+        $declineSentModel = $this->declineSentFactory->create();
+        $declineSentModel->load($this->order->getId(), "order_id");
+
+        if ($declineSentModel && $declineSentModel->getId()) {
+           throw new \Exception(
+               sprintf(
+                   __("Decline email for order #%s has been already sent."),
+                   $this->order->getIncrementId()
+               )
+           );
+        }
+
+        return $this;
     }
 }
