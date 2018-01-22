@@ -52,7 +52,12 @@ class Merchant
             throw $uae;
         } catch (\Riskified\OrderWebhook\Exception\CurlException $curlException) {
             $this->logger->addCritical($curlException);
-            $this->_messageManager->addError(__('Riskified extension: %s', $curlException->getMessage()));
+            $this->_messageManager->addError(
+                sprintf(
+                    __('Riskified extension: %s'),
+                    $curlException->getMessage()
+                )
+            );
             throw $curlException;
         } catch (\Exception $e) {
             $this->logger->addCritical($e);
