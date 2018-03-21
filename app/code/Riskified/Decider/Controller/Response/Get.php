@@ -2,24 +2,27 @@
 namespace Riskified\Decider\Controller\Response;
 
 use \Riskified\DecisionNotification;
+use \Magento\Framework\App\State as AppState;
 
 class Get extends \Magento\Framework\App\Action\Action
 {
     private $apiOrderLayer;
     private $api;
     private $apiLogger;
-    private $order;
+    private $state;
 
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
         \Riskified\Decider\Api\Api $api,
         \Riskified\Decider\Api\Order $apiOrder,
-        \Riskified\Decider\Api\Log $apiLogger
+        \Riskified\Decider\Api\Log $apiLogger,
+        AppState $state
     ) {
         parent::__construct($context);
         $this->api = $api;
         $this->apiLogger = $apiLogger;
         $this->apiOrderLayer = $apiOrder;
+        $this->state = $state;
     }
 
     public function execute()
@@ -28,32 +31,33 @@ class Get extends \Magento\Framework\App\Action\Action
         $request = $this->getRequest();
         $response = $this->getResponse();
         $logger = $this->apiLogger;
-        $logger->log("Start execute");
         $statusCode = 200;
         $id = null;
         $msg = null;
-        $logger->log("Start Try");
+
         try {
             $notification = $this->api->parseRequest($request);
             $id = $notification->id;
             if ($notification->status == 'test' && $id == 0) {
                 $statusCode = 200;
                 $msg = 'Test notification received successfully';
-                $logger->log("Test Notification received: ", serialize($notification));
             } else {
-                $logger->log("Notification received: ", serialize($notification));
                 $order = $this->apiOrderLayer->loadOrderByOrigId($id);
                 if (!$order || !$order->getId()) {
-                    $logger->log("ERROR: Unable to load order (" . $id . ")");
                     $statusCode = 400;
                     $msg = 'Could not find order to update.';
                 } else {
-                    $this->apiOrderLayer->update(
-                        $order,
-                        $notification->status,
-                        $notification->oldStatus,
-                        $notification->description
+                    $this->state->emulateAreaCode(
+                        "adminhtml",
+                        [$this->apiOrderLayer, "update"],
+                        [
+                            $order,
+                            $notification->status,
+                            $notification->oldStatus,
+                            $notification->description
+                        ]
                     );
+
                     $statusCode = 200;
                     $msg = 'Order-Update event triggered.';
                 }
