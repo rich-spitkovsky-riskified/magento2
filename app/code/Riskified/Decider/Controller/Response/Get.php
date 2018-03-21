@@ -11,6 +11,15 @@ class Get extends \Magento\Framework\App\Action\Action
     private $apiLogger;
     private $state;
 
+    /**
+     * Get constructor.
+     *
+     * @param \Magento\Framework\App\Action\Context $context
+     * @param \Riskified\Decider\Api\Api $api
+     * @param \Riskified\Decider\Api\Order $apiOrder
+     * @param \Riskified\Decider\Api\Log $apiLogger
+     * @param AppState $state
+     */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
         \Riskified\Decider\Api\Api $api,
@@ -25,6 +34,9 @@ class Get extends \Magento\Framework\App\Action\Action
         $this->state = $state;
     }
 
+    /**
+     * @inheritdoc
+     */
     public function execute()
     {
 
