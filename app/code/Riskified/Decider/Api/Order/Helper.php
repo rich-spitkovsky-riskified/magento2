@@ -338,7 +338,7 @@ class Helper
                     $avs_result_code = $payment->getAdditionalInformation('adyen_avs_result');
                     $cvv_result_code = $payment->getAdditionalInformation('adyen_cvc_result');
                     $transactionId = $payment->getAdditionalInformation('pspReference');
-                    $credit_card_bin = $payment->getAdyenCardBin();
+                    $credit_card_bin = $payment->getAdditionalInformation('adyen_card_bin');
                     break;
                 default:
                     break;
