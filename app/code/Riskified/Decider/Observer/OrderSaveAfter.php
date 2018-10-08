@@ -26,7 +26,9 @@ class OrderSaveAfter implements ObserverInterface
         }
 
         if ($order->dataHasChangedFor('state')) {
-            if ($order->getPayment()->getMethod() == 'authorizenet_directpost') {
+            if ($order->getPayment()->getMethod() == 'authorizenet_directpost'
+                || $order->getStatus() == 'pending_riskified'
+            ) {
                 try {
                     $this->_orderApi->post($order, Api::ACTION_UPDATE);
                 } catch (\Exception $e) {

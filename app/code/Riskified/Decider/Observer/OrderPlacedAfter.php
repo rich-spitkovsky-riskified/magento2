@@ -19,6 +19,7 @@ class OrderPlacedAfter implements ObserverInterface
 
     public function execute(\Magento\Framework\Event\Observer $observer)
     {
+        return $this;
         $order = $observer->getOrder();
 
         if (!$order) {
