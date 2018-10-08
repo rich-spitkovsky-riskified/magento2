@@ -19,6 +19,10 @@ class OrderPlacedAfter implements ObserverInterface
 
     public function execute(\Magento\Framework\Event\Observer $observer)
     {
+        /**
+         *  Disabling api call here in order to submit order to riskify on "pending_riskified" status instead,
+         *  which is done in \Riskified\Decider\Observer\OrderSaveAfter
+         */
         return $this;
         $order = $observer->getOrder();
 
