@@ -18,6 +18,8 @@ class Order
     private $session;
     private $date;
     private $queueFactory;
+    private $orderRepository;
+    private $searchCriteriaBuilder;
 
     public function __construct(
         Api $api,
@@ -30,8 +32,9 @@ class Order
         \Magento\Sales\Model\Order $orderFactory,
         \Magento\Framework\Stdlib\DateTime\DateTime $date,
         \Riskified\Decider\Model\QueueFactory $queueFactory,
-        \Magento\Framework\Session\SessionManagerInterface $session
-
+        \Magento\Framework\Session\SessionManagerInterface $session,
+        \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
+        \Magento\Framework\Api\SearchCriteriaBuilder $searchCriteriaBuilder
     )
     {
         $this->_api = $api;
@@ -46,6 +49,8 @@ class Order
         $this->session = $session;
         $this->date = $date;
         $this->queueFactory = $queueFactory;
+        $this->orderRepository = $orderRepository;
+        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
 
         $this->_api->initSdk();
     }
@@ -53,7 +58,7 @@ class Order
     public function post($order, $action)
     {
         if (!$this->_apiConfig->isEnabled()) {
-            return;
+            return $this;
         }
 
         $transport = $this->_api->getTransport();
@@ -154,6 +159,7 @@ class Order
 
     private function load($model)
     {
+        /** @var \Magento\Sales\Api\Data\OrderInterface $model */
         $gateway = 'unavailable';
         if ($model->getPayment()) {
             $gateway = $model->getPayment()->getMethod();
@@ -252,18 +258,37 @@ class Order
         }
 
         if ($order_id && $increment_id) {
-            return $this->_orderFactory->getCollection()
-                ->addFieldToFilter('entity_id', $order_id)
-                ->addFieldToFilter('increment_id', $increment_id)
-                ->getFirstItem();
+            $searchCriteria = $this->searchCriteriaBuilder
+                ->addFilter('increment_id', $increment_id, 'eq')
+                ->addFilter('entity_id', $order_id, 'eq')
+                ->create();
+
+            $orderSearchResultList = $this->orderRepository->getList($searchCriteria);
+            $orderList = $orderSearchResultList->getItems();
+
+            if (is_array($orderList) && count($orderList) === 1) {
+                return reset($orderList);
+            } else {
+                return false;
+            }
         }
 
         if (!$order_id && $increment_id) {
-            return $this->_orderFactory->loadByIncrementId($increment_id);
+            $searchCriteria = $this->searchCriteriaBuilder
+                ->addFilter('increment_id', $increment_id, 'eq')->create();
+
+            $orderSearchResultList = $this->orderRepository->getList($searchCriteria);
+            $orderList = $orderSearchResultList->getItems();
+
+            if (is_array($orderList) && count($orderList) === 1) {
+                return reset($orderList);
+            } else {
+                return false;
+            }
         }
 
         if ($order_id) {
-            return $this->_orderFactory->load($order_id);
+            return $this->orderRepository->get($order_id);
         }
 
         return null;

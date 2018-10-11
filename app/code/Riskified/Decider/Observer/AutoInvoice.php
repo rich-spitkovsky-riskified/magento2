@@ -79,6 +79,20 @@ class AutoInvoice implements ObserverInterface
     private $state;
 
     /**
+     * Order repository class.
+     *
+     * @var \Magento\Sales\Api\OrderRepositoryInterface
+     */
+    private $orderRepository;
+
+    /**
+     * Invoice repository class.
+     *
+     * @var \Magento\Sales\Api\InvoiceRepositoryInterface
+     */
+    private $invoiceRepository;
+
+    /**
      * AutoInvoice constructor.
      *
      * @param Log                  $apiOrderLogger
@@ -88,6 +102,8 @@ class AutoInvoice implements ObserverInterface
      * @param InvoiceService       $invoiceService
      * @param Context              $context
      * @param ObjectManagerFactory $objectManagerFactory
+     * @param \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
+     * @param \Magento\Sales\Api\InvoiceRepositoryInterface $invoiceRepository
      */
     public function __construct(
         Log $apiOrderLogger,
@@ -96,7 +112,9 @@ class AutoInvoice implements ObserverInterface
         OrderApi $orderApi,
         InvoiceService $invoiceService,
         Context $context,
-        ObjectManagerFactory $objectManagerFactory
+        ObjectManagerFactory $objectManagerFactory,
+        \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
+        \Magento\Sales\Api\InvoiceRepositoryInterface $invoiceRepository
     ) {
         $this->logger = $logger;
         $this->context = $context;
@@ -104,8 +122,10 @@ class AutoInvoice implements ObserverInterface
         $this->apiConfig = $apiConfig;
         $this->apiOrderLogger = $apiOrderLogger;
         $this->invoiceService = $invoiceService;
-        $this->objectManager  = $objectManagerFactory;
-        $this->state  = $context->getAppState();
+        $this->objectManager = $objectManagerFactory;
+        $this->state = $context->getAppState();
+        $this->orderRepository = $orderRepository;
+        $this->invoiceRepository = $invoiceRepository;
     }
 
     /**
@@ -121,12 +141,18 @@ class AutoInvoice implements ObserverInterface
             return false;
         }
 
+        /** @var \Magento\Sales\Api\Data\OrderInterface $order */
         $order = $observer->getOrder();
 
         if (!$order || !$order->getId()) {
             return false;
         }
-        $this->logger->addInfo('Auto-invoicing  order ' . $order->getId());
+        $this->logger->addInfo(
+            sprintf(
+                __('Auto-invoicing  order #%s'),
+                $order->getIncrementId()
+            )
+        );
 
         if (!$order->canInvoice()
             || $order->getState() != OrderEntity::STATE_PROCESSING
@@ -146,7 +172,9 @@ class AutoInvoice implements ObserverInterface
         );
 
         if (!$invoice->getTotalQty()) {
-            $this->logger->addInfo('Cannot create an invoice without products');
+            $this->logger->addInfo(
+                __('Cannot create an invoice without products')
+            );
 
             return false;
         }
@@ -167,20 +195,30 @@ class AutoInvoice implements ObserverInterface
                 [$invoice, 'register']
             );
         } catch (\Exception $e) {
-            $this->logger->addInfo("Error creating invoice: " . $e->getMessage());
+            $this->logger->addInfo(
+                sprintf(
+                    __("Error creating invoice: %s"),
+                    $e->getMessage()
+                )
+            );
             return false;
         }
         try {
-            $invoice->save();
-            $invoice->getOrder()->save();
+            $this->invoiceRepository->save($invoice);
+            $this->orderRepository->save($invoice->getOrder());
         } catch (\Exception $e) {
             $this->logger->addCritical(
-                'Error creating transaction: ' . $e->getMessage()
+                sprintf(
+                    __('Error creating transaction: %s'),
+                    $e->getMessage()
+                )
             );
 
             return false;
         }
-        $this->logger->addInfo("Transaction saved");
+        $this->logger->addInfo(
+            __("Transaction saved")
+        );
     }
 
     /**
