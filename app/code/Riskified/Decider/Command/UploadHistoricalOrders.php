@@ -1,48 +1,93 @@
 <?php
+
 namespace Riskified\Decider\Command;
 
+use Magento\Framework\App\State;
+use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Sales\Api\OrderRepositoryInterface;
+use Magento\Framework\Api\SearchCriteria;
+use Riskified\Decider\Api\Order\Helper;
+
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 use Riskified\Common\Riskified;
-use Riskified\Common\Env;
 use Riskified\Common\Validations;
 use Riskified\Common\Signature;
 use Riskified\OrderWebhook\Model;
-use Riskified\OrderWebhook\Transport;
 use Riskified\OrderWebhook\Transport\CurlTransport;
 
 class UploadHistoricalOrders extends Command
 {
-    protected $_scopeConfig;
-    protected $_orderRepository;
-    protected $_searchCriteriaBuilder;
-    protected $_orderHelper;
-    protected $_transport;
-    protected $_totalUploaded = 0;
-    protected $_currentPage = 1;
-    protected $_orders;
-
     const BATCH_SIZE = 10;
 
-    public function __construct(
-        \Magento\Framework\App\State $state,
-        \Magento\Store\Model\StoreManagerInterface $storeManagerInterface,
-        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
-        \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
-        \Magento\Framework\Api\SearchCriteria $searchCriteriaBuilder
-    ) {
-        $state->setAreaCode('adminhtml');
+    /**
+     * @var ScopeConfigInterface
+     */
+    protected $_scopeConfig;
 
+    /**
+     * @var OrderRepositoryInterface
+     */
+    protected $_orderRepository;
+
+    /**
+     * @var SearchCriteria
+     */
+    protected $_searchCriteriaBuilder;
+
+    /**
+     * @var OrderHelper
+     */
+    protected $_orderHelper;
+
+    /**
+     * @var CurlTransport
+     */
+    protected $_transport;
+
+    /**
+     * @var int
+     */
+    protected $_totalUploaded = 0;
+
+    /**
+     * @var int
+     */
+    protected $_currentPage = 1;
+
+    /**
+     * @var \Magento\Sales\Api\Data\OrderInterface[]
+     */
+    protected $_orders;
+
+    /**
+     * @var State
+     */
+    protected $appState;
+
+    /**
+     * UploadHistoricalOrders constructor.
+     *
+     * @param State $state
+     * @param ScopeConfigInterface $scopeConfig
+     * @param OrderRepositoryInterface $orderRepository
+     * @param SearchCriteria $searchCriteriaBuilder
+     * @param Helper $orderHelper
+     */
+    public function __construct(
+        State $state,
+        ScopeConfigInterface $scopeConfig,
+        OrderRepositoryInterface $orderRepository,
+        SearchCriteria $searchCriteriaBuilder,
+        Helper $orderHelper
+    ) {
+        $this->appState = $state;
         $this->_scopeConfig             = $scopeConfig;
         $this->_orderRepository         = $orderRepository;
         $this->_searchCriteriaBuilder   = $searchCriteriaBuilder;
-
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-        $this->_orderHelper = $objectManager->get('\Riskified\Decider\Api\Order\Helper');
-
+        $this->_orderHelper = $orderHelper;
         $this->_transport = new CurlTransport(new Signature\HttpDataSignature());
         $this->_transport->timeout = 15;
 
@@ -65,6 +110,7 @@ class UploadHistoricalOrders extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        $this->appState->setAreaCode(\Magento\Framework\App\Area::AREA_ADMINHTML);
 
         $authToken = $this->_scopeConfig->getValue('riskified/riskified/key', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
         $env = constant('\Riskified\Common\Env::' . $this->_scopeConfig->getValue('riskified/riskified/env'));
@@ -107,7 +153,8 @@ class UploadHistoricalOrders extends Command
      *
      * @return \Magento\Sales\Api\Data\OrderSearchResultInterface
      */
-    protected function getEntireCollection() {
+    protected function getEntireCollection()
+    {
         $orderResult = $this
             ->_orderRepository
             ->getList($this->_searchCriteriaBuilder);
@@ -119,7 +166,8 @@ class UploadHistoricalOrders extends Command
      *
      * @return void
      */
-    protected function getCollection() {
+    protected function getCollection()
+    {
         $this->_searchCriteriaBuilder
             ->setPageSize(self::BATCH_SIZE)
             ->setCurrentPage($this->_currentPage);
@@ -132,7 +180,8 @@ class UploadHistoricalOrders extends Command
      *
      * @return void
      */
-    protected function postOrders() {
+    protected function postOrders()
+    {
         if (!$this->_scopeConfig->getValue('riskified/riskified_general/enabled')) {
             return;
         }
@@ -149,7 +198,8 @@ class UploadHistoricalOrders extends Command
      *
      * @return Model\Order
      */
-    protected function prepareOrder($model) {
+    protected function prepareOrder($model)
+    {
         $gateway = 'unavailable';
         if ($model->getPayment()) {
             $gateway = $model->getPayment()->getMethod();

@@ -9,20 +9,17 @@ class Config
     private $_scopeConfig;
     private $cookieManager;
     private $fullModuleList;
-    private $checkoutSession;
 
     const BEACON_URL = 'beacon.riskified.com';
 
     public function __construct(
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         \Magento\Framework\Stdlib\CookieManagerInterface $cookieManager,
-        \Magento\Framework\Module\FullModuleList $fullModuleList,
-        \Magento\Checkout\Model\Session $checkoutSession
+        \Magento\Framework\Module\FullModuleList $fullModuleList
     ) {
         $this->_scopeConfig     = $scopeConfig;
         $this->cookieManager    = $cookieManager;
         $this->fullModuleList   = $fullModuleList;
-        $this->checkoutSession  = $checkoutSession;
     }
 
     public function isEnabled()
@@ -61,11 +58,6 @@ class Config
                 'riskified/riskified/env',
                 ScopeInterface::SCOPE_STORES
             );
-    }
-
-    public function getSessionId()
-    {
-        return $this->checkoutSession->getQuoteId();
     }
 
     public function getConfigEnableAutoInvoice()
