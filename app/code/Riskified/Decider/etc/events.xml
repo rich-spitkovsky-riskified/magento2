@@ -31,4 +31,12 @@
         <observer name="riskified_decider_order_uncancel"
                   instance="Riskified\Decider\Observer\UnCancelOrder"/>
     </event>
+    <event name="controller_action_predispatch_cybersource_index_placeorder">
+        <observer name="riskified__decider_controller_action_cybersource"
+                  instance="Riskified\Decider\Observer\Controller\ActionCybersourcePlaceorder"/>
+    </event>
+    <event name="controller_action_predispatch_checkout_cart_index">
+    <observer name="riskified_decider_controller_action_cart"
+              instance="Riskified\Decider\Observer\Controller\ActionCartIndex"/>
+    </event>
 </config>

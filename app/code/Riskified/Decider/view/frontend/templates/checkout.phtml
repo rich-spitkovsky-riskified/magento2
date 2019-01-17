@@ -1,33 +1,44 @@
-<?php /** @var \Riskified\Decider\Block\Js $block */ ?>
+?php /** @var \Riskified\Decider\Block\Js $block */ ?>
 <?php if ($block->isEnabled()) : ?>
-<script>
-    require([
-        'jquery',
-        'Riskified_Decider/js/eligible',
-        "jquery/ui",
-        'domReady!'
-    ], function($, eligible){
-        $(document).on('mousedown', '.payment-method-content .checkout', function (e) {
-            var value = jQuery('.payment-methods input[type="radio"]:checked').parent().next().find("input[name='payment[cc_number]']").val();
-            if (value.length > 0) {
-                $.ajax({url: "/decider/response/bin", data: {card: value.substr(0, 6)}});
-            }
-            e.preventDefault();
-        });
+    <script>
+        require([
+            'jquery',
+            'Riskified_Decider/js/eligible',
+            "jquery/ui",
+            'domReady!'
+        ], function($, eligible){
+            $(document).on('mousedown', '.payment-method-content .checkout', function (e) {
+                var value = jQuery('.payment-methods input[type="radio"]:checked').parent().next().find("input[name='payment[cc_number]']").val();
+                if (value.length > 0) {
+                    $.ajax({url: "/decider/response/bin", data: {card: value.substr(0, 6)}});
+                }
+                e.preventDefault();
+            });
 
-        $(document).on('paymentFail', function (e) {
-            eligible.paymentFail(
-                "<?php echo \Magento\Framework\App\ObjectManager::getInstance()
-                    ->get('Magento\Framework\App\Config\ScopeConfigInterface')
-                    ->getValue('riskified/deco_configuration/button_color')?>",
-                "<?php echo \Magento\Framework\App\ObjectManager::getInstance()
-                    ->get('Magento\Framework\App\Config\ScopeConfigInterface')
-                    ->getValue('riskified/deco_configuration/button_text_color')?>",
-                "<?php echo \Magento\Framework\App\ObjectManager::getInstance()
-                    ->get('Magento\Framework\App\Config\ScopeConfigInterface')
-                    ->getValue('riskified/deco_configuration/logo_url')?>"
-            );
+            $(document).on('paymentFail', function (e) {
+                requestIsEligible();
+            });
+
+            var decision = <?= \Zend_Json::encode($block->getDecision()); ?>;
+            if (decision === false) {
+                $(document).one('change', '.payment-methods input[type="radio"]', function() {
+                    requestIsEligible();
+                });
+            }
+
+            function requestIsEligible() {
+                eligible.paymentFail(
+                    "<?php echo \Magento\Framework\App\ObjectManager::getInstance()
+                        ->get('Magento\Framework\App\Config\ScopeConfigInterface')
+                        ->getValue('riskified/deco_configuration/button_color')?>",
+                    "<?php echo \Magento\Framework\App\ObjectManager::getInstance()
+                        ->get('Magento\Framework\App\Config\ScopeConfigInterface')
+                        ->getValue('riskified/deco_configuration/button_text_color')?>",
+                    "<?php echo \Magento\Framework\App\ObjectManager::getInstance()
+                        ->get('Magento\Framework\App\Config\ScopeConfigInterface')
+                        ->getValue('riskified/deco_configuration/logo_url')?>"
+                );
+            }
         });
-    });
-</script>
+    </script>
 <?php endif ?>

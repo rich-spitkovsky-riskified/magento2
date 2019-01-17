@@ -13,7 +13,7 @@ class CheckoutCreate implements ObserverInterface
     private $checkoutResource;
 
     public function __construct(
-        \Riskified\Decider\Logger\Order $logger,
+        \Riskified\Decider\Api\Log $logger,
         \Riskified\Decider\Api\Order $orderApi,
         \Riskified\Decider\Model\Resource\Checkout $checkoutResource
     ) {
