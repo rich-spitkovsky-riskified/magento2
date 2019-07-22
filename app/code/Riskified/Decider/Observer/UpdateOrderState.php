@@ -80,7 +80,8 @@ class UpdateOrderState implements ObserverInterface
             case 'approved':
                 if ($currentState == Order::STATE_HOLDED
                     && ($currentStatus == $this->apiOrderConfig->getOnHoldStatusCode()
-                        || $currentStatus == $this->apiOrderConfig->getTransportErrorStatusCode())
+                        || $currentStatus == $this->apiOrderConfig->getTransportErrorStatusCode()
+                            || $currentStatus == $this->apiOrderConfig->getRiskifiedDeclinedStatusCode())
                 ) {
                     $newState = $this->apiOrderConfig->getSelectedApprovedState();
                     $newStatus = $this->apiOrderConfig->getSelectedApprovedStatus();
