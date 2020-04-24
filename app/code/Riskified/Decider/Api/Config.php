@@ -16,7 +16,7 @@ class Config
     const BEACON_URL = 'beacon.riskified.com';
 
     public function __construct(
-        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
+        ScopeConfigInterface $scopeConfig,
         \Magento\Framework\Stdlib\CookieManagerInterface $cookieManager,
         \Magento\Framework\Module\FullModuleList $fullModuleList,
         \Magento\Checkout\Model\Session $checkoutSession
